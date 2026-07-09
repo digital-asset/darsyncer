@@ -63,7 +63,6 @@ function build() (
         --bare \
         --sbom spdx \
         --tags "${tag}" \
-        --tags "latest" \
         "./cmd/${name}"
 )
 
