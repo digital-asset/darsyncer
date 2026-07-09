@@ -36,6 +36,9 @@ function publish() {
 
   echo "promoting: ${release_image}"
   gcrane cp "${snap_image}" "${release_image}"
+
+  echo "tag latest"
+  gcrane tag "${release_image}" "latest"
 }
 
 publish "darsyncer"
