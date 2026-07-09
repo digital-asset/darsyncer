@@ -1,0 +1,77 @@
+# Copyright 2026 Copyright (c) 2026 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: build
+
+on:
+  - push
+
+defaults:
+  run:
+    shell: bash -euo pipefail -c "source nix.source && export PATH=$GITHUB_WORKSPACE/bin:$PATH && exec bash {0}"
+
+jobs:
+
+  build:
+    runs-on: digital-asset-darsyncer
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+      - uses: ./.github/actions/nix
+      - uses: ./.github/actions/gcloud-login
+        with:
+          key: ${{ secrets.DA_IMAGES }}
+
+      - name: Cache Go modules
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+
+      - name: Download Go modules
+        run: |
+          source nix.source
+          go mod download
+
+      - name: Check license headers
+        run: |
+          source nix.source
+          go run github.com/google/addlicense@latest -check -ignore "**/*.nix" -ignore "**/*.xml" .
+
+      - name: Build Go project
+        run: |
+          source nix.source
+          scripts/build.sh
+
+  release:
+    runs-on: digital-asset-darsyncer
+    needs: [build]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+      - uses: ./.github/actions/nix
+      - uses: ./.github/actions/gcloud-login
+        with:
+          key: ${{ secrets.DA_IMAGES }}
+
+      - name: Release
+        run: |
+          source nix.source
+          gcloud beta auth configure-docker "europe-docker.pkg.dev"
+          ./scripts/gha/release.sh

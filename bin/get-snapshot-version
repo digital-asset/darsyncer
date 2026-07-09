@@ -1,0 +1,43 @@
+#! /usr/bin/env bash
+
+set -euo pipefail
+
+# Ensure REPO_ROOT is set, or set it to the repo root directory
+REPO_ROOT="${REPO_ROOT:-$(git rev-parse --show-toplevel)}"
+
+sha=$(git rev-parse HEAD)
+commit_date=$(git log -n1 --format=%cd --date=format:%Y%m%d "$sha")
+number_of_commits=$(git rev-list --count "$sha")
+commit_sha_8=$(git log -n1 --format=%h --abbrev=8 "$sha")
+
+prefix=$(<"${REPO_ROOT}"/VERSION)
+
+function increment_version() {( set -euo pipefail
+    local version="$1"
+
+    # parse the version string into major, minor, and patch components
+    IFS='.' read -r major minor patch <<< "$version"
+
+    # check if patch version contains non-numeric value
+    if [[ "$patch" =~ [^0-9] ]]; then
+      IFS='.' read -r patch_numeric other <<< "${patch}"
+      dev_patch="$patch_numeric"
+    else
+      # increment the patch version
+      dev_patch=$((patch + 1))
+    fi
+
+    echo "${major}.${minor}.${dev_patch}"
+)}
+
+user_suffix=""
+if [ -z "${CI:-}" ]; then
+    user_suffix="-${USER}"
+fi
+
+if [ "${1-}" == "--release" ]; then
+    echo "$prefix"
+else
+    dev_version=$(increment_version "$prefix")
+    echo "$dev_version$user_suffix-snapshot.$commit_date.$number_of_commits.0.v$commit_sha_8"
+fi
