@@ -23,55 +23,52 @@ defaults:
 
 jobs:
 
-  build:
+  test-mirror:
     runs-on: digital-asset-darsyncer
     steps:
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
-      - uses: ./.github/actions/nix
-      - uses: ./.github/actions/gcloud-login
-        with:
-          key: ${{ secrets.DA_IMAGES }}
-
-      - name: Cache Go modules
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-
-      - name: Download Go modules
+      - name: test-mirror
+        shell: bash
+        env:
+          SBT_MAVEN_MIRROR: "http://reposilite.reposilite:8080"
         run: |
-          source nix.source
-          go mod download
-
-      - name: Check license headers
-        run: |
-          source nix.source
-          go run github.com/google/addlicense@latest -check -ignore "**/*.nix" -ignore "**/*.xml" .
-
-      - name: Build Go project
-        run: |
-          source nix.source
-          scripts/build.sh
-
-  release:
-    runs-on: digital-asset-darsyncer
-    needs: [build]
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
-
-      - uses: ./.github/actions/nix
-      - uses: ./.github/actions/gcloud-login
-        with:
-          key: ${{ secrets.DA_IMAGES }}
-
-      - name: Release
-        run: |
-          source nix.source
-          gcloud beta auth configure-docker "europe-docker.pkg.dev"
-          ./scripts/gha/release.sh
+          set -xeuo pipefail
+          
+          mkdir -p "$HOME/.sbt" "$HOME/.local/bin"
+          
+          cat > "$HOME/.sbt/repositories" <<EOF
+          [repositories]
+          corp-maven: ${SBT_MAVEN_MIRROR}
+          maven-central
+          local
+          EOF
+          
+          export SBT_OPTS="-Dsbt.override.build.repos=true -Dsbt.repository.config=$HOME/.sbt/repositories"
+          echo "SBT_OPTS=$SBT_OPTS"
+          
+          curl -fL https://github.com/coursier/coursier/releases/latest/download/cs-x86_64-pc-linux.gz \
+            | gzip -d > "$HOME/.local/bin/cs"
+          chmod +x "$HOME/.local/bin/cs"
+          
+          "$HOME/.local/bin/cs" install sbt --install-dir "$HOME/.local/bin"
+          
+          export PATH="$HOME/.local/bin:$PATH"
+          
+          mkdir -p /tmp/sbt-mirror-test/project
+          cd /tmp/sbt-mirror-test
+          
+          cat > build.sbt <<'EOF'
+          scalaVersion := "2.13.14"
+          libraryDependencies += "org.typelevel" %% "cats-core" % "2.12.0"
+          EOF
+          
+          cat > project/build.properties <<'EOF'
+          sbt.version=1.10.7
+          EOF
+          
+          echo "repositories:"
+          cat "$HOME/.sbt/repositories"
+          
+          sbt -debug update
