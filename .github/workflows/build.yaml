@@ -62,7 +62,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.CANTON_ARTIFACTS_DEV_PUBLISH }}
 
       - name: Build Go project
         run: |
