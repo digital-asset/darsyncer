@@ -70,7 +70,7 @@ jobs:
           scripts/build.sh
         env:
           # Sets target repository to ghcr.io/owner/repo
-          KO_DOCKER_REPO: ghcr.io/canton-artifacts-dev
+          KO_DOCKER_REPO: ghcr.io/canton-artifacts-dev/temp/darsyncer
 
   release:
     runs-on: digital-asset-darsyncer
