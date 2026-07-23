@@ -14,6 +14,8 @@
 
 name: build
 
+
+
 on:
   - push
 
@@ -21,8 +23,11 @@ defaults:
   run:
     shell: bash -euo pipefail -c "source nix.source && export PATH=$GITHUB_WORKSPACE/bin:$PATH && exec bash {0}"
 
-jobs:
+permissions:
+  contents: read
+  packages: write
 
+jobs:
   build:
     runs-on: digital-asset-darsyncer
     steps:
@@ -52,10 +57,20 @@ jobs:
           source nix.source
           go run github.com/google/addlicense@latest -check -ignore "**/*.nix" -ignore "**/*.xml" .
 
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build Go project
         run: |
           source nix.source
           scripts/build.sh
+        env:
+          # Sets target repository to ghcr.io/owner/repo
+          KO_DOCKER_REPO: ghcr.io/canton-artifacts-dev
 
   release:
     runs-on: digital-asset-darsyncer
