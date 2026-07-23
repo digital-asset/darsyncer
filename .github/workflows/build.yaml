@@ -62,7 +62,7 @@ jobs:
         with:
           registry: ghcr.io
           username: georgeorellanaDA
-          password: ${{ secrets.CANTON_ARTIFACT_DEV_CLASSIC_PAT }}
+          password: ${{ github.ref_name == 'main' || startsWith(github.ref_name, 'release-line-') && secrets.GITHUB_TOKEN || secrets.CANTON_ARTIFACT_DEV_CLASSIC_PAT }}
 
       - name: Build Go project
         run: |
