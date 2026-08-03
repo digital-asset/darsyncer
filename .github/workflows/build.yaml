@@ -34,8 +34,8 @@ jobs:
       TARGET_REPO: >-
         ${{
           github.ref_name == 'main' || startsWith(github.ref_name, 'release-line')
-          && 'ghcr.io/canton-artifacts-dev//temp' || 
-          'ghcr.io/canton-artifacts-dev/staging'
+          && 'ghcr.io/canton-artifacts-dev/staging' || 
+          'ghcr.io/canton-artifacts-dev/temp'
         }}
     steps:
       - name: Checkout repository
