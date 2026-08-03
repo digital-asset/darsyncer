@@ -80,7 +80,7 @@ jobs:
           scripts/build.sh
         env:
           # Sets target repository to ghcr.io/owner/repo
-          KO_DOCKER_REPO: ${{ env.TARGET_REPO }}
+          KO_DOCKER_REPO: ${{ env.TARGET_REPO }}/darsyncer
 
   release:
     runs-on: digital-asset-darsyncer
