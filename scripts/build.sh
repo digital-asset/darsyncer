@@ -19,7 +19,6 @@ script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 cd "${script_dir}/.."
 
 tag="$(get-snapshot-version)"
-reg='europe-docker.pkg.dev/da-images/public-unstable/docker'
 
 export KO_DEFAULTBASEIMAGE="europe-docker.pkg.dev/da-images/public/docker/da-base-image:minimal"
 
@@ -51,11 +50,10 @@ function build() (
     name="$1"
 
     ref_name=()
-    ref_name+=(--image-label=org.opencontainers.image.base.ref.name="${reg}/${name}")
-    ref_name+=(--image-annotation=org.opencontainers.image.base.ref.name="${reg}/${name}") 
+    ref_name+=(--image-label=org.opencontainers.image.base.ref.name="${KO_DEFAULTBASEIMAGE}")
+    ref_name+=(--image-annotation=org.opencontainers.image.base.ref.name="${KO_DEFAULTBASEIMAGE}")
 
     set -x
-#    KO_DOCKER_REPO="${reg}/${name}" \
         ko build \
         --platform="linux/amd64,linux/arm64" \
         "${params[@]}" \
