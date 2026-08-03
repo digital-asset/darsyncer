@@ -54,7 +54,6 @@ function build() (
     ref_name+=(--image-annotation=org.opencontainers.image.base.ref.name="${KO_DEFAULTBASEIMAGE}")
 
     set -x
-#    KO_DOCKER_REPO="${reg}/${name}" \
         ko build \
         --platform="linux/amd64,linux/arm64" \
         "${params[@]}" \
