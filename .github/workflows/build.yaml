@@ -28,6 +28,15 @@ permissions:
 jobs:
   build:
     runs-on: digital-asset-darsyncer
+    env:
+      DEV_GHCR: ghcr.io/canton-artifacts-dev/
+      PROD_GHCR: ghcr.io/digital-asset
+      TARGET_REPO: >-
+        ${{
+          github.ref_name == 'main' || startsWith(github.ref_name, 'release-line')
+          && "${{ DEV_GHCR }}/temp" || 
+          "${{ DEV_GHCR }}/staging"
+        }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -59,8 +68,11 @@ jobs:
         uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4
         with:
           registry: ghcr.io
-          username: ${{ github.ref_name == 'main' || startsWith(github.ref_name, 'release-line') && github.actor || 'infra-da' }}
-          password: ${{ github.ref_name == 'main' || startsWith(github.ref_name, 'release-line') && secrets.GITHUB_TOKEN || secrets.DA_INFRA_PAT }}
+          username: 'infra-da'
+          password: ${{ secrets.DA_INFRA_PAT }}
+
+#          username: ${{ github.ref_name == 'main' || startsWith(github.ref_name, 'release-line') && github.actor || 'infra-da' }}
+#          password: ${{ github.ref_name == 'main' || startsWith(github.ref_name, 'release-line') && secrets.GITHUB_TOKEN || secrets.DA_INFRA_PAT }}
 
       - name: Build Go project
         run: |
@@ -68,7 +80,7 @@ jobs:
           scripts/build.sh
         env:
           # Sets target repository to ghcr.io/owner/repo
-          KO_DOCKER_REPO: ghcr.io/canton-artifacts-dev/temp/darsyncer
+          KO_DOCKER_REPO: ${{ env.TARGET_REPO }}
 
   release:
     runs-on: digital-asset-darsyncer
