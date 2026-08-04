@@ -85,7 +85,9 @@ jobs:
   release:
     runs-on: digital-asset-darsyncer
     needs: [build]
-    if: github.ref == 'refs/heads/main'
+    if: startsWith(github.ref.mname, 'release-line')
+    environment:
+      name: release
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
