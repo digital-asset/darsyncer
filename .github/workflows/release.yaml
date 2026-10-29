@@ -18,7 +18,7 @@ on:
   workflow_run:
     workflows: ["build"] # Only run on main if build step passed
     types: [completed]
-    branches: ["release-and-tag", "main"]
+    branches: ["release-and-tag"]
 
 permissions:
   contents: write
