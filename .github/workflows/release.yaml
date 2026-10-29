@@ -54,7 +54,7 @@ jobs:
 
       - name: Release Docker image
         env:
-          VERSION: ${{ steps.version.outputs.version }}
+          VERSION: ${{ steps.version.outputs.RELEASE_VERSION }}
         run: |
           source nix.source
           gcloud beta auth configure-docker "europe-docker.pkg.dev"
@@ -62,7 +62,7 @@ jobs:
 
       - name: Create and push git tag
         env:
-          VERSION: ${{ steps.version.outputs.version }}
+          VERSION: ${{ steps.version.outputs.RELEASE_VERSION }}
         run: |
           existing="$(git ls-remote --tags --refs origin "refs/tags/$VERSION")"
           if [[ -n "$existing" ]]; then
@@ -76,7 +76,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          VERSION: ${{ steps.version.outputs.version }}
+          VERSION: ${{ steps.version.outputs.RELEASE_VERSION }}
         run: |
           tags="$(gh api --paginate "repos/$GH_REPO/releases" --jq '.[].tag_name')"
           if grep -Fxq -- "$VERSION" <<< "$tags"; then
