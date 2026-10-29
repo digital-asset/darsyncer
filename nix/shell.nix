@@ -4,6 +4,8 @@ let
     # these packages are required both in CI and for local development
     crane
     gcrane
+    gh
+    gitMinimal
     go
     ko
     openjdk21

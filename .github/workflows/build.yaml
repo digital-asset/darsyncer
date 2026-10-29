@@ -56,22 +56,3 @@ jobs:
         run: |
           source nix.source
           scripts/build.sh
-
-  release:
-    runs-on: digital-asset-darsyncer
-    needs: [build]
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
-
-      - uses: ./.github/actions/nix
-      - uses: ./.github/actions/gcloud-login
-        with:
-          key: ${{ secrets.DA_IMAGES }}
-
-      - name: Release
-        run: |
-          source nix.source
-          gcloud beta auth configure-docker "europe-docker.pkg.dev"
-          ./scripts/gha/release.sh
