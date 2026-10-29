@@ -18,7 +18,8 @@ on:
   workflow_run:
     workflows: ["build"] # Only run on main if build step passed
     types: [completed]
-    branches: ["release-and-tag", "main"]
+    branches: ["main"]
+  push: # just for testing on PR
 
 permissions:
   contents: write
@@ -34,9 +35,9 @@ jobs:
     steps:
       - name: Checkout built commit
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
-#        with:
-#          ref: ${{ github.event.workflow_run.head_sha }}
-#          fetch-depth: 2
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 2
 
       - uses: ./.github/actions/nix
       - uses: ./.github/actions/gcloud-login
