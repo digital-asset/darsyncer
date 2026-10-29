@@ -1,0 +1,78 @@
+# Copyright 2026 Copyright (c) 2026 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: release
+
+on:
+  workflow_run:
+    workflows: ["build"] # Only run on main if build step passed
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    shell: bash -euo pipefail -c "source nix.source && export PATH=$GITHUB_WORKSPACE/bin:$PATH && exec bash {0}"
+
+jobs:
+  release:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: digital-asset-darsyncer
+    steps:
+      - name: Checkout built commit
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 2
+
+      - uses: ./.github/actions/nix
+      - uses: ./.github/actions/gcloud-login
+        with:
+          key: ${{ secrets.DA_IMAGES }}
+
+      - name: Read release version
+        id: version
+        run: |
+          version="$(tr -d '[:space:]' < VERSION)"
+          : "${version:?VERSION file must not be empty}"
+          git check-ref-format "refs/tags/$version"
+          echo "RELEASE_VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Release Docker image
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          source nix.source
+          gcloud beta auth configure-docker "europe-docker.pkg.dev"
+          ./scripts/gha/release.sh
+
+      - name: Create and push git tag
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git tag "$VERSION" "$GITHUB_SHA"
+          git push origin "refs/tags/$VERSION"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "$VERSION" \
+            --verify-tag \
+            --title "$VERSION" \
+            --generate-notes
