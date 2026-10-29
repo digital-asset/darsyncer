@@ -64,7 +64,7 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.RELEASE_VERSION }}
         run: |
-          existing="$(git ls-remote --tags --refs origin "refs/tags/$VERSION")"
+          existing="$(git ls-remote --tags --refs origin "refs/tags/v$VERSION")"
           if [[ -n "$existing" ]]; then
             echo "Tag $VERSION already exists; skipping."
           else
@@ -78,7 +78,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
           VERSION: ${{ steps.version.outputs.RELEASE_VERSION }}
         run: |
-          tags="$(gh api --paginate "repos/$GH_REPO/releases" --jq '.[].tag_name')"
+          tags="$(gh api --paginate "repos/$GH_REPO/releases" --jq '.[].tag_name | ltrimstr("v")')"
           if grep -Fxq -- "$VERSION" <<< "$tags"; then
             echo "Release $VERSION already exists; skipping."
           else
