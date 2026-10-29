@@ -18,7 +18,7 @@ on:
   workflow_run:
     workflows: ["build"] # Only run on main if build step passed
     types: [completed]
-    branches: [main]
+    branches: ["release-and-tag", "main"]
 
 permissions:
   contents: write
@@ -68,7 +68,7 @@ jobs:
             echo "Tag $VERSION already exists; skipping."
           else
             git tag "$VERSION" HEAD
-            git push origin "refs/tags/$VERSION"
+            git push origin "refs/tags/$VERSION" --dry-run
           fi
 
       - name: Create GitHub release
@@ -83,6 +83,9 @@ jobs:
           else
             gh release create "$VERSION" \
               --verify-tag \
-              --title "$VERSION" \
+              --draft \
+              --prerelease \
+              --fail-on-no-commits \
+              --title "$VERSION" \          
               --generate-notes
           fi
