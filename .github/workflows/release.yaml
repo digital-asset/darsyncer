@@ -63,8 +63,13 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          git tag "$VERSION" "$GITHUB_SHA"
-          git push origin "refs/tags/$VERSION"
+          existing="$(git ls-remote --tags --refs origin "refs/tags/$VERSION")"
+          if [[ -n "$existing" ]]; then
+            echo "Tag $VERSION already exists; skipping."
+          else
+            git tag "$VERSION" HEAD
+            git push origin "refs/tags/$VERSION"
+          fi
 
       - name: Create GitHub release
         env:
@@ -72,7 +77,12 @@ jobs:
           GH_REPO: ${{ github.repository }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          gh release create "$VERSION" \
-            --verify-tag \
-            --title "$VERSION" \
-            --generate-notes
+          tags="$(gh api --paginate "repos/$GH_REPO/releases" --jq '.[].tag_name')"
+          if grep -Fxq -- "$VERSION" <<< "$tags"; then
+            echo "Release $VERSION already exists; skipping."
+          else
+            gh release create "$VERSION" \
+              --verify-tag \
+              --title "$VERSION" \
+              --generate-notes
+          fi
