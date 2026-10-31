@@ -24,7 +24,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func Sync(ctx context.Context, conn grpc.ClientConnInterface, db *PackageDatabase) (err error) {
+func Sync(ctx context.Context, conn grpc.ClientConnInterface, db *PackageDatabase, vetDars bool) (err error) {
 	packageManagementService := v30.NewPackageServiceClient(conn)
 
 	var response *v30.ListPackagesResponse
@@ -61,8 +61,8 @@ func Sync(ctx context.Context, conn grpc.ClientConnInterface, db *PackageDatabas
 						Description: &entry.Name,
 					},
 				},
-				VetAllPackages:     true,
-				SynchronizeVetting: true,
+				VetAllPackages:     vetDars,
+				SynchronizeVetting: vetDars,
 			}
 			err, duration = stopwatch.Time(func() error {
 				_, uploadErr := packageManagementService.UploadDar(ctx, req)

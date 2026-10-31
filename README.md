@@ -3,7 +3,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # darsyncer
 
-This repository hosts the code for `darsyncer`, an application developed by [Digital Asset](https://www.digitalasset.com/) that synchronizes and vets dars it is configured to read to a participant which it is authenticated to upload dars. 
+This repository hosts the code for `darsyncer`, an application developed by [Digital Asset](https://www.digitalasset.com/) that synchronizes (and by default vets) dars to a configured authenticated participant.
 
 Documentation for `darsyncer` is available at [docs.canton.network](https://docs.canton.network/sdks-tools/development-tools/darsyncer).
 

@@ -36,6 +36,7 @@ type Service struct {
 	TokenSource             *oauth2.TokenSource
 	PackageDb               *PackageDatabase
 	Once                    bool
+	VetDars                 bool
 	Ready                   atomic.Bool
 	Check                   bool
 	Wait                    bool
@@ -161,7 +162,7 @@ func (s *Service) runSync(ctx context.Context) error {
 		}
 	}()
 
-	err = Sync(ctx, conn, s.PackageDb)
+	err = Sync(ctx, conn, s.PackageDb, s.VetDars)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to sync", slog.Any("err", err))
 		return err

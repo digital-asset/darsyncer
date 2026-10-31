@@ -94,6 +94,14 @@ func main() {
 							Destination: &service.ProbeEndpoint,
 							Value:       "0.0.0.0:8080",
 						},
+						&cli.BoolFlag{
+							Name:        "vet-dars",
+							Usage:       "vet packages when uploading dars (disable with --vet-dars=false)",
+							Value:       true,
+							OnlyOnce:    true,
+							Destination: &service.VetDars,
+							Sources:     cli.EnvVars("VET_DARS"),
+						},
 					},
 				},
 				Required: true,
@@ -251,6 +259,7 @@ func main() {
 				slog.String("dars path", darsPath),
 				slog.String("endpoint", service.Endpoint),
 				slog.Any("auth", authLog),
+				slog.Bool("vet-dars", service.VetDars),
 			)
 
 			return service.Run(ctx)
