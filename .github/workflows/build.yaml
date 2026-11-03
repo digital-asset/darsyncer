@@ -76,6 +76,9 @@ jobs:
 
 
   release:
+    permissions:
+      contents: write
+      id-token: write
     needs: [build]
 #    if: github.ref == 'refs/heads/main'
     runs-on: digital-asset-darsyncer
