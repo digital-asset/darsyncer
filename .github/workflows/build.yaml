@@ -76,15 +76,15 @@ jobs:
 
 
   release:
+    permissions:
+      contents: write
+      id-token: write
     needs: [build]
     if: github.ref == 'refs/heads/main'
     runs-on: digital-asset-darsyncer
     steps:
-      - name: Checkout built commit
+      - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
-          fetch-depth: 2
 
       - uses: ./.github/actions/nix
       - name: Authenticate to Google Cloud
