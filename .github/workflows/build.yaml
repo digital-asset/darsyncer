@@ -73,3 +73,78 @@ jobs:
         run: |
           source nix.source
           scripts/build.sh
+
+
+  release:
+    needs: [build]
+    if: github.ref == 'refs/heads/main'
+    runs-on: digital-asset-darsyncer
+    steps:
+      - name: Checkout built commit
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 2
+
+      - uses: ./.github/actions/nix
+      - name: Authenticate to Google Cloud
+        id: auth
+        # https://github.com/google-github-actions/auth/tree/v3
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093
+        with:
+          token_format: access_token
+          workload_identity_provider: projects/794775982379/locations/global/workloadIdentityPools/github-actions/providers/da-provider
+          service_account: gh-da-darsyncer@da-images.iam.gserviceaccount.com
+
+      - name: Login to GAR
+        # https://github.com/docker/login-action/tree/v4
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6
+        with:
+          registry: europe-docker.pkg.dev
+          username: oauth2accesstoken
+          password: ${{ steps.auth.outputs.access_token }}
+
+      - name: Read release version
+        id: version
+        run: |
+          version="$(tr -d '[:space:]' < VERSION)"
+          : "${version:?VERSION file must not be empty}"
+          git check-ref-format "refs/tags/$version"
+          echo "RELEASE_VERSION=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Release Docker image
+        env:
+          VERSION: ${{ steps.version.outputs.RELEASE_VERSION }}
+        run: |
+          source nix.source
+          gcloud beta auth configure-docker "europe-docker.pkg.dev"
+          ./scripts/gha/release.sh
+
+      - name: Create and push git tag
+        env:
+          VERSION: ${{ steps.version.outputs.RELEASE_VERSION }}
+        run: |
+          existing="$(git ls-remote --tags --refs origin "refs/tags/v$VERSION")"
+          if [[ -n "$existing" ]]; then
+            echo "Tag $VERSION already exists; skipping."
+          else
+            git tag "$VERSION" HEAD
+            git push origin "refs/tags/$VERSION"
+          fi
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ steps.version.outputs.RELEASE_VERSION }}
+        run: |
+          tags="$(gh api --paginate "repos/$GH_REPO/releases" --jq '.[].tag_name | ltrimstr("v")')"
+          if grep -Fxq -- "$VERSION" <<< "$tags"; then
+            echo "Release $VERSION already exists; skipping."
+          else
+            gh release create "$VERSION" \
+              --verify-tag \
+              --fail-on-no-commits \
+              --title "$VERSION" \
+              --generate-notes
+          fi
