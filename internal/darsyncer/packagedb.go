@@ -17,9 +17,12 @@ package darsyncer
 import (
 	"archive/zip"
 	"bytes"
+	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	v30 "github.com/digital-asset/dazl-client/v8/go/api/com/digitalasset/canton/admin/participant/v30"
@@ -34,9 +37,10 @@ type PackageDatabase struct {
 }
 
 type Entry struct {
-	Name    string
-	DarFile []byte
-	Hashes  []string
+	Name          string
+	DarFile       []byte
+	Hashes        []string
+	MainPackageId string
 }
 
 // NewFromFS creates a PackageDatabase from a path to a dar or a directory of dars
@@ -78,6 +82,11 @@ func (p *PackageDatabase) Add(name string, darFile []byte) error {
 		return err
 	}
 
+	mainPackageId, err := GetMainPackageId(reader)
+	if err != nil {
+		return fmt.Errorf("%s: %w", name, err)
+	}
+
 	entry := &Entry{Name: name, DarFile: darFile}
 	for _, f := range reader.File {
 		if strings.HasSuffix(f.Name, ".dalf") {
@@ -90,6 +99,13 @@ func (p *PackageDatabase) Add(name string, darFile []byte) error {
 			entry.Hashes = append(entry.Hashes, hash)
 		}
 	}
+
+	// sanity check
+	if !slices.Contains(entry.Hashes, mainPackageId) {
+		slog.Warn("extracted main-package-id from the manifest is not a package in the dar",
+			slog.Any("darFile", name), slog.Any("mainPackageId", mainPackageId))
+	}
+	entry.MainPackageId = mainPackageId
 
 	p.Entries = append(p.Entries, entry)
 	return nil
