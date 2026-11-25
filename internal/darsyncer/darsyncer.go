@@ -23,6 +23,7 @@ import (
 	"time"
 
 	v30 "github.com/digital-asset/dazl-client/v8/go/api/com/digitalasset/canton/admin/participant/v30"
+	topologyv30 "github.com/digital-asset/dazl-client/v8/go/api/com/digitalasset/canton/topology/admin/v30"
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health/grpc_health_v1"
@@ -166,7 +167,21 @@ func (s *Service) runSync(ctx context.Context) error {
 		slog.ErrorContext(ctx, "failed to sync", slog.Any("err", err))
 		return err
 	}
+
 	s.Ready.Store(true)
+
+	if s.VetDars {
+		idResponse, err := topologyv30.NewIdentityInitializationServiceClient(conn).GetId(ctx, &topologyv30.GetIdRequest{})
+		if err != nil {
+			slog.ErrorContext(ctx, "failed to get participant id: %w", slog.Any("err", err))
+			return err
+		}
+
+		if err = s.syncVets(ctx, conn, idResponse.GetUniqueIdentifier()); err != nil {
+			slog.ErrorContext(ctx, "failed to sync vets", slog.Any("err", err))
+			return err
+		}
+	}
 
 	healthCheck := grpc_health_v1.NewHealthClient(conn)
 	client, err := healthCheck.Watch(ctx, &grpc_health_v1.HealthCheckRequest{})
