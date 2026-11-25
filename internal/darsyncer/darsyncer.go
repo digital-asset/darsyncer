@@ -35,7 +35,6 @@ type Service struct {
 	ProbeEndpoint           string
 	TokenSource             *oauth2.TokenSource
 	PackageDb               *PackageDatabase
-	Once                    bool
 	VetDars                 bool
 	Ready                   atomic.Bool
 	Check                   bool
@@ -168,11 +167,6 @@ func (s *Service) runSync(ctx context.Context) error {
 		return err
 	}
 	s.Ready.Store(true)
-
-	if s.Once {
-		slog.InfoContext(ctx, "only syncing once")
-		return nil
-	}
 
 	healthCheck := grpc_health_v1.NewHealthClient(conn)
 	client, err := healthCheck.Watch(ctx, &grpc_health_v1.HealthCheckRequest{})
